@@ -230,7 +230,7 @@ module ActiveSupport
       # <tt>:race_condition_ttl</tt> does not play any role.
       #
       #   # Set all values to expire after one minute.
-      #   cache = ActiveSupport::Cache::MemoryCache.new(:expires_in => 1.minute)
+      #   cache = ActiveSupport::Cache::MemoryStore.new(:expires_in => 1.minute)
       #
       #   cache.write("foo", "original value")
       #   val_1 = nil
@@ -555,7 +555,7 @@ module ActiveSupport
         @expires_in = options[:expires_in]
         @expires_in = @expires_in.to_f if @expires_in
         @created_at = Time.now.to_f
-        if value
+        unless value.nil?
           if should_compress?(value, options)
             @value = Zlib::Deflate.deflate(Marshal.dump(value))
             @compressed = true
@@ -574,7 +574,7 @@ module ActiveSupport
 
       # Get the value stored in the cache.
       def value
-        if @value
+        unless @value.nil?
           val = compressed? ? Marshal.load(Zlib::Inflate.inflate(@value)) : @value
           unless val.frozen?
             val.freeze rescue nil

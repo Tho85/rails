@@ -116,8 +116,8 @@ module ActiveRecord #:nodoc:
   # When joining tables, nested hashes or keys written in the form 'table_name.column_name'
   # can be used to qualify the table name of a particular condition. For instance:
   #
-  #   Student.joins(:schools).where(:schools => { :type => 'public' })
-  #   Student.joins(:schools).where('schools.type' => 'public' )
+  #   Student.joins(:schools).where(:schools => { :category => 'public' })
+  #   Student.joins(:schools).where('schools.category' => 'public' )
   #
   # == Overwriting default accessors
   #
@@ -756,7 +756,7 @@ module ActiveRecord #:nodoc:
       # values, eg:
       #
       #  class CreateJobLevels < ActiveRecord::Migration
-      #    def self.up
+      #    def up
       #      create_table :job_levels do |t|
       #        t.integer :id
       #        t.string :name
@@ -770,7 +770,7 @@ module ActiveRecord #:nodoc:
       #      end
       #    end
       #
-      #    def self.down
+      #    def down
       #      drop_table :job_levels
       #    end
       #  end
@@ -2170,18 +2170,18 @@ MSG
     include AutosaveAssociation, NestedAttributes
     include Aggregations, Transactions, Reflection, Serialization
 
-    NilClass.add_whiner(self) if NilClass.respond_to?(:add_whiner)
-
     # Returns the value of the attribute identified by <tt>attr_name</tt> after it has been typecast (for example,
     # "2004-12-12" in a data column is cast to a date object, like Date.new(2004, 12, 12)).
     # (Alias for the protected read_attribute method).
-    alias [] read_attribute
+    def [](attr_name)
+      read_attribute(attr_name)
+    end
 
     # Updates the attribute identified by <tt>attr_name</tt> with the specified +value+.
     # (Alias for the protected write_attribute method).
-    alias []= write_attribute
-
-    public :[], :[]=
+    def []=(attr_name, value)
+      write_attribute(attr_name, value)
+    end
   end
 end
 

@@ -146,6 +146,16 @@ class PrimaryKeysTest < ActiveRecord::TestCase
     assert_equal k.connection.quote_column_name("bar"), k.quoted_primary_key
   end
 
+  def test_set_primary_key_sets_schema_cache
+    klass = Class.new(ActiveRecord::Base)
+    klass.table_name = 'fuuuuuu'
+    klass.connection.create_table(:fuuuuuu, :id => false) { |t| t.integer :omg }
+    klass.primary_key = 'omg'
+    assert klass.connection_pool.columns_hash['fuuuuuu']['omg'].primary
+  ensure
+    klass.connection.drop_table(:fuuuuuu) if klass.table_exists?
+  end
+
   def test_set_primary_key_with_no_connection
     return skip("disconnect wipes in-memory db") if in_memory_db?
 
@@ -161,4 +171,15 @@ class PrimaryKeysTest < ActiveRecord::TestCase
 
     assert_equal 'foo', model.primary_key
   end
+
+  if current_adapter?(:MysqlAdapter) or current_adapter?(:Mysql2Adapter)
+    def test_primaery_key_method_with_ansi_quotes
+      con = ActiveRecord::Base.connection
+      con.execute("SET SESSION sql_mode='ANSI_QUOTES'")
+      assert_equal "id", con.primary_key("topics")
+    ensure
+      con.reconnect!
+    end
+  end
+
 end

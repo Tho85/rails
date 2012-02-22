@@ -68,11 +68,11 @@ module ApplicationTests
       files << Dir["#{app_path}/public/assets/foo/application.js"].first
       files.each do |file|
         assert_not_nil file, "Expected application.js asset to be generated, but none found"
-        assert_equal "alert()", File.read(file)
+        assert_equal "alert();", File.read(file)
       end
     end
 
-    test "precompile application.js and application.css and all other files not ending with .js or .css by default" do
+    test "precompile application.js and application.css and all other non JS/CSS files" do
       app_file "app/assets/javascripts/application.js", "alert();"
       app_file "app/assets/stylesheets/application.css", "body{}"
 
@@ -82,8 +82,11 @@ module ApplicationTests
       app_file "app/assets/javascripts/something.min.js", "alert();"
       app_file "app/assets/stylesheets/something.min.css", "body{}"
 
+      app_file "app/assets/javascripts/something.else.js.erb", "alert();"
+      app_file "app/assets/stylesheets/something.else.css.erb", "body{}"
+
       images_should_compile = ["a.png", "happyface.png", "happy_face.png", "happy.face.png",
-                               "happy-face.png", "happy.happy_face.png", "happy_happy.face.png", 
+                               "happy-face.png", "happy.happy_face.png", "happy_happy.face.png",
                                "happy.happy.face.png", "happy", "happy.face", "-happyface",
                                "-happy.png", "-happy.face.png", "_happyface", "_happy.face.png",
                                "_happy.png"]
@@ -106,6 +109,9 @@ module ApplicationTests
 
       assert !File.exists?("#{app_path}/public/assets/something.min.js")
       assert !File.exists?("#{app_path}/public/assets/something.min.css")
+
+      assert !File.exists?("#{app_path}/public/assets/something.else.js")
+      assert !File.exists?("#{app_path}/public/assets/something.else.css")
     end
 
     test "asset pipeline should use a Sprockets::Index when config.assets.digest is true" do
@@ -450,6 +456,28 @@ module ApplicationTests
       files = Dir["#{app_path}/public/production_assets/application.js"]
       assert_equal 0, files.length, "Expected application.js asset to be removed, but still exists"
     end
+
+    test "asset urls should use the request's protocol by default" do
+      app_with_assets_in_view
+      add_to_config "config.asset_host = 'example.com'"
+      require "#{app_path}/config/environment"
+      class ::PostsController < ActionController::Base; end
+
+      get '/posts', {}, {'HTTPS'=>'off'}
+      assert_match('src="http://example.com/assets/application.js', last_response.body)
+      get '/posts', {}, {'HTTPS'=>'on'}
+      assert_match('src="https://example.com/assets/application.js', last_response.body)
+    end
+
+    test "asset urls should be protocol-relative if no request is in scope" do
+      app_file "app/assets/javascripts/image_loader.js.erb", 'var src="<%= image_path("rails.png") %>";'
+      add_to_config "config.assets.precompile = %w{image_loader.js}"
+      add_to_config "config.asset_host = 'example.com'"
+      precompile!
+
+      assert_match 'src="//example.com/assets/rails.png"', File.read("#{app_path}/public/assets/image_loader.js")
+    end
+
 
     private
 

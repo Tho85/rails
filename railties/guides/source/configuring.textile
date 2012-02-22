@@ -40,7 +40,9 @@ Rails will use that particular setting to configure Active Record.
 
 h4. Rails General Configuration
 
-* +config.after_initialize+ takes a block which will be ran _after_ Rails has finished initializing the application. That includes the initialization of the framework itself, plugins, engines, and all the application's initializers in +config/initializers+. Useful for configuring values set up by other initializers:
+These configuration methods are to be called on a +Rails::Railtie+ object, such as a subclass of +Rails::Engine+ or +Rails::Application+.
+
+* +config.after_initialize+ takes a block which will be run _after_ Rails has finished initializing the application. That includes the initialization of the framework itself, plugins, engines, and all the application's initializers in +config/initializers+. Note that this block _will_ be run for rake tasks. Useful for configuring values set up by other initializers:
 
 <ruby>
 config.after_initialize do
@@ -64,7 +66,7 @@ NOTE. The +config.asset_path+ configuration is ignored if the asset pipeline is 
 
 * +config.autoload_paths+ accepts an array of paths from which Rails will autoload constants. Default is all directories under +app+.
 
-* +config.cache_classes+ controls whether or not application classes and modules should be reloaded on each request. Defaults to true in development mode, and false in test and production modes. Can also be enabled with +threadsafe!+.
+* +config.cache_classes+ controls whether or not application classes and modules should be reloaded on each request. Defaults to false in development mode, and true in test and production modes. Can also be enabled with +threadsafe!+.
 
 * +config.action_view.cache_template_loading+ controls whether or not templates should be reloaded on each request. Defaults to whatever is set for +config.cache_classes+.
 
@@ -179,7 +181,7 @@ h4. Configuring Middleware
 
 Every Rails application comes with a standard set of middleware which it uses in this order in the development environment:
 
-* +Rack::SSL+ Will force every request to be under HTTPS protocol. Will be available if +config.force_ssl+ is set to +true+.
+* +Rack::SSL+ Will force every request to be under HTTPS protocol. Will be available if +config.force_ssl+ is set to +true+.  Options passed to this can be configured by using +config.ssl_options+.
 * +ActionDispatch::Static+ is used to serve static assets. Disabled if +config.serve_static_assets+ is +true+.
 * +Rack::Lock+ Will wrap the app in mutex so it can only be called by a single thread at a time. Only enabled if +config.action_controller.allow_concurrency+ is set to +false+, which it is by default.
 * +ActiveSupport::Cache::Strategy::LocalCache+ Serves as a basic memory backed cache. This cache is not thread safe and is intended only for serving as a temporary memory cache for a single thread.
@@ -260,6 +262,8 @@ h4. Configuring Active Record
 * +config.active_record.lock_optimistically+ controls whether Active Record will use optimistic locking and is true by default.
 
 * +config.active_record.whitelist_attributes+ will create an empty whitelist of attributes available for mass-assignment security for all models in your app.
+
+* +config.active_record.identity_map+ controls whether the identity map is enabled, and is false by default.
 
 The MySQL adapter adds one additional configuration option:
 

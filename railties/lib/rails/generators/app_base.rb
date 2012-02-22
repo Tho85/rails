@@ -190,29 +190,44 @@ module Rails
 
       def turn_gemfile_entry
         unless RUBY_VERSION < "1.9.2" || options[:skip_test_unit]
+          version = RUBY_VERSION >= "1.9.3" ? "'~> 0.8.3'" : "'0.8.2'"
           <<-GEMFILE.strip_heredoc
             group :test do
               # Pretty printed test output
-              gem 'turn', :require => false
+              gem 'turn', #{version}, :require => false
             end
           GEMFILE
         end
+      end
+
+      def assets_gemfile_entry
+        return if options[:skip_sprockets]
+        gemfile = <<-GEMFILE.strip_heredoc
+          # Gems used only for assets and not required
+          # in production environments by default.
+          group :assets do
+            gem 'sass-rails', #{options.dev? || options.edge? ? "  :git => 'git://github.com/rails/sass-rails.git', :branch => '3-1-stable'" : "  '~> 3.1.5'"}
+            gem 'coffee-rails', #{options.dev? || options.edge? ? ":git => 'git://github.com/rails/coffee-rails.git', :branch => '3-1-stable'" : "'~> 3.1.1'"}
+
+            # See https://github.com/sstephenson/execjs#readme for more supported runtimes
+            #{javascript_runtime_gemfile_entry}
+            gem 'uglifier', '>= 1.0.3'
+          end
+        GEMFILE
+
+        gemfile.strip_heredoc.gsub(/^[ \t]*$/, '')
       end
 
       def javascript_gemfile_entry
         "gem '#{options[:javascript]}-rails'" unless options[:skip_javascript]
       end
 
-      def assets_gemfile_entry
-        <<-GEMFILE.strip_heredoc
-          # Gems used only for assets and not required
-          # in production environments by default.
-          group :assets do
-            gem 'sass-rails', #{options.dev? || options.edge? ? "  :git => 'git://github.com/rails/sass-rails.git', :branch => '3-1-stable'" : "  '~> 3.1.4'"}
-            gem 'coffee-rails', #{options.dev? || options.edge? ? ":git => 'git://github.com/rails/coffee-rails.git', :branch => '3-1-stable'" : "'~> 3.1.1'"}
-            gem 'uglifier', '>= 1.0.3'
-          end
-        GEMFILE
+      def javascript_runtime_gemfile_entry
+        if defined?(JRUBY_VERSION)
+          "gem 'therubyrhino'\n"
+        else
+          "# gem 'therubyracer'\n"
+        end
       end
 
       def bundle_command(command)

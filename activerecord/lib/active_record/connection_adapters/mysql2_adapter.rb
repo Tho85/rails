@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-gem 'mysql2', '~> 0.3.6'
+gem 'mysql2', '~> 0.3.10'
 require 'mysql2'
 
 module ActiveRecord
@@ -189,7 +189,7 @@ module ActiveRecord
       end
 
       def substitute_at(column, index)
-        Arel.sql "\0"
+        Arel::Nodes::BindParam.new "\0"
       end
 
       # REFERENTIAL INTEGRITY ====================================
@@ -572,12 +572,15 @@ module ActiveRecord
 
       # Returns a table's primary key and belonging sequence.
       def pk_and_sequence_for(table)
-        keys = []
-        result = execute("DESCRIBE #{quote_table_name(table)}", 'SCHEMA')
-        result.each(:symbolize_keys => true, :as => :hash) do |row|
-          keys << row[:Field] if row[:Key] == "PRI"
+        result = execute("SHOW CREATE TABLE #{quote_table_name(table)}", 'SCHEMA')
+        create_table = result.first[1]
+
+        if create_table.to_s =~ /PRIMARY KEY\s+\((.+)\)/
+          keys = $1.split(",").map { |key| key.gsub(/[`"]/, "") }
+          keys.length == 1 ? [keys.first, nil] : nil
+        else
+          nil
         end
-        keys.length == 1 ? [keys.first, nil] : nil
       end
 
       # Returns just a table's primary key
