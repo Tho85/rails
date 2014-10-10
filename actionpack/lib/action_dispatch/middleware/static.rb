@@ -11,7 +11,7 @@ module ActionDispatch
     def match?(path)
       path = path.dup
 
-      full_path = path.empty? ? @root : File.join(@root, ::Rack::Utils.unescape(path))
+      full_path = path.empty? ? @root : File.join(@root, clean_path_info(::Rack::Utils.unescape(path)))
       paths = "#{full_path}#{ext}"
 
       matches = Dir[paths]
@@ -31,6 +31,25 @@ module ActionDispatch
         ext = ::ActionController::Base.page_cache_extension
         "{,#{ext},/index#{ext}}"
       end
+    end
+
+    private
+
+    PATH_SEPS = Regexp.union(*[::File::SEPARATOR, ::File::ALT_SEPARATOR].compact)
+
+    def clean_path_info(path_info)
+      parts = path_info.split PATH_SEPS
+
+      clean = []
+
+      parts.each do |part|
+        next if part.empty? || part == '.'
+        part == '..' ? clean.pop : clean << part
+      end
+
+      clean.unshift '/' if parts.empty? || parts.first.empty?
+
+      ::File.join(*clean)
     end
   end
 
